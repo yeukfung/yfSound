@@ -25,7 +25,7 @@ function shell(content: HTMLElement): HTMLElement {
   header.className = 'site-header';
   header.innerHTML = `
     <div class="inner">
-      <a class="site-title" href="#/">speaker designs<span class="cursor">_</span></a>
+      <a class="site-title" href="#/">yfSound<span class="cursor">_</span></a>
       <span class="site-tagline">a portfolio of DIY loudspeaker builds</span>
     </div>`;
 

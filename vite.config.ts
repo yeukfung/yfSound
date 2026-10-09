@@ -113,7 +113,7 @@ function copyContentPlugin(): Plugin {
 export default defineConfig(({ command }) => ({
   // GitHub Pages serves under /<repo>/ unless using a custom domain.
   // Set BASE_PATH=/ for a user site or custom domain.
-  base: process.env.BASE_PATH ?? '/speaker-showcase/',
+  base: process.env.BASE_PATH ?? '/yfSound/',
   plugins: command === 'serve' ? [cmsPlugin()] : [copyContentPlugin()],
   server: {
     fs: {
