@@ -1,4 +1,4 @@
-# AGENTS.md — Speaker Design Showcase
+# AGENTS.md — yfSound (Speaker Design Showcase)
 
 > This document governs the entire project. Any agent (human or AI) working on this
 > repo MUST follow these rules. If a change conflicts with this file, update this
@@ -39,8 +39,10 @@ in this file first.
 4. **The CMS writes ONLY to `content/`.** Never to `src/`, never to config files.
 5. **`content/speakers.json` is the source of truth.** If it isn't in the JSON, it
    isn't on the site.
-6. **The admin UI must not appear in the production build.** It is gated behind
-   `import.meta.env.DEV` and tree-shaken out of the prod bundle.
+6. **The admin UI must not appear in the production build.** The `#/admin` route
+   renders a 404 unless `import.meta.env.DEV`. The admin module is dynamically
+   imported only after that guard, so it ends up as a lazy chunk that production
+   never requests. It is NOT statically tree-shaken — don't rely on that.
 7. **TypeScript types in `src/types.ts` are the schema.** Both the site and the
    CMS import from there. Change the type → update the CMS form → update this doc.
 8. **Validate before write.** The CMS must validate a speaker object against the
@@ -85,9 +87,17 @@ interface Speaker {
   3. write pretty-printed JSON (2-space indent, UTF-8, trailing newline)
 - On delete: remove the speaker entry from JSON. **Do NOT delete image files
   automatically** — orphan cleanup is a manual/human decision.
-- The CMS talks to the dev server through Vite's plugin API
-  (`vite.config.ts` plugin) exposing small endpoints:
-  `POST /api/upload`, `PUT /api/content`, `DELETE /api/speaker/<slug>` — dev-only.
+- The CMS talks to the dev server through a Vite plugin (`cmsPlugin` in
+  `vite.config.ts`). The plugin is only registered when `command === 'serve'`, so
+  the endpoints exist in dev only. Exactly two endpoints:
+  - `POST /api/upload` — raw binary body framed as: 12-byte NUL-padded slug +
+    4-byte big-endian filename length + 4 reserved bytes + UTF-8 filename +
+    image bytes. Responds `{ "path": "content/speakers/<slug>/<file>" }`.
+  - `GET|PUT /api/content` — GET returns the raw `speakers.json`; PUT replaces it
+    with the submitted array (pretty-printed, trailing newline).
+  - Delete has NO dedicated endpoint: the CMS removes the entry from its local
+    array and PUTs the whole array. Failures respond `{ "error": ... }` with a
+    4xx/5xx status.
 
 ## 6. Pixel Design Guide
 
@@ -143,11 +153,17 @@ No transforms, no bounces. Blinking cursor allowed on the site title via
 - `npm run preview` — serve the prod build locally
 - GitHub Pages workflow: `.github/workflows/deploy.yml` triggers on push to `main`,
   runs `npm ci && npm run build`, publishes `/dist` via `actions/deploy-pages`.
+- `content/` is copied verbatim into `dist/` during the build (`copyContentPlugin`
+  in `vite.config.ts`) — prod is a fully static snapshot and needs no dev server.
+- `base` defaults to `/yfSound/` (the GitHub repo name). For a user site or a
+  custom domain, override it: `BASE_PATH=/ npm run build`.
 - Hash routing means no server-side rewrites are needed. No 404.html hack required.
 
 ## 8. Conventions
 
-- **Slugs:** kebab-case, `[a-z0-9-]`, no spaces, no diacritics. CMS enforces.
+- **Slugs:** kebab-case matching `^[a-z0-9]+(-[a-z0-9]+)*$` — no spaces, no
+  diacritics, no leading/trailing or doubled hyphens. `src/types.ts` enforces on
+  save; the CMS enforces live while typing.
 - **File names:** kebab-case, lowercase, images keep their real extension.
 - **Gallery order:** array order = display order; index 0 is the cover on the home page.
 - **Story markdown:** supports headings, paragraphs, bold/italic, inline code,
@@ -161,3 +177,8 @@ No transforms, no bounces. Blinking cursor allowed on the site title via
 When you change a rule here, append a line:
 
 - 2026-10-09 — initial version
+- 2026-10-09 — corrected CMS endpoint contract: no `DELETE /api/speaker/<slug>`
+  exists, delete goes through `PUT /api/content`; documented `/api/upload` binary
+  framing. Clarified rule 6 (admin is a lazy chunk, not tree-shaken). Tightened
+  slug convention to the actual regex. Documented the `dist/` content copy step
+  and the `/yfSound/` base path in Build & Deploy.
