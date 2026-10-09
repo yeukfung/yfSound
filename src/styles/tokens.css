@@ -1,0 +1,24 @@
+:root {
+  --bg: #0a0e14;
+  --bg-raised: #11161f;
+  --bg-inset: #070a0f;
+  --border: #2a3340;
+  --border-strong: #3d4a5c;
+  --fg: #c5cdd9;
+  --fg-dim: #6b7686;
+  --accent: #7fd962;
+  --accent-warn: #e0b458;
+  --danger: #d95c5c;
+
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  --fs-base: 15px;
+  --lh-base: 1.6;
+  --fs-h1: 24px;
+  --fs-h2: 19px;
+  --fs-h3: 16px;
+
+  --pad-card: 20px;
+  --gap: 16px;
+  --max-w: 860px;
+}

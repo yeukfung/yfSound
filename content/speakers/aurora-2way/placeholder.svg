@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <!-- placeholder image; replace via the admin UI -->
+  <rect width="800" height="600" fill="#070a0f"/>
+  <rect x="240" y="80" width="320" height="440" fill="#11161f" stroke="#3d4a5c" stroke-width="4"/>
+  <circle cx="400" cy="240" r="90" fill="#0a0e14" stroke="#2a3340" stroke-width="3"/>
+  <circle cx="400" cy="240" r="40" fill="#11161f" stroke="#7fd962" stroke-width="3"/>
+  <circle cx="400" cy="410" r="60" fill="#0a0e14" stroke="#2a3340" stroke-width="3"/>
+  <circle cx="400" cy="410" r="22" fill="#11161f" stroke="#7fd962" stroke-width="3"/>
+  <text x="400" y="570" fill="#6b7686" font-family="monospace" font-size="20" text-anchor="middle">placeholder — upload a photo in the admin UI</text>
+</svg>

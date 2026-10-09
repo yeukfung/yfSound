@@ -1,0 +1,16 @@
+[
+  {
+    "slug": "aurora-2way",
+    "name": "Aurora 2-Way",
+    "tagline": "A two-way bookshelf with a handmade wooden waveguide",
+    "story": "## Why this design\n\nThe Aurora started as an experiment in **waveguide directivity** matching. The goal was a smooth handoff between the 1\" dome and the 6.5\" mid-woofer at around 1.8 kHz.\n\n### Key choices\n\n- 1\" soft dome with a 3D-printed waveguide, Q ~ 0.7\n- Sealed 14 L enclosure, tuned for an F3 of 48 Hz\n- First-order electrical / acoustic target via a minimal-parts crossover\n\n> The crossover ended up simpler than planned — the waveguide did most of the work.\n\nThe measured responses came out within 2 dB from 80 Hz to 20 kHz on-axis.\n\n1. Design the waveguide first\n2. Pick the tweeter that fits it\n3. Simulate, build, measure, iterate",
+    "gallery": [
+      {
+        "path": "content/speakers/aurora-2way/placeholder.svg",
+        "caption": "Front view — finished pair"
+      }
+    ],
+    "createdAt": "2026-10-09",
+    "updatedAt": "2026-10-09"
+  }
+]
