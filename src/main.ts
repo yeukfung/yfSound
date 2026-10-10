@@ -9,7 +9,20 @@ import type { Speaker } from './types';
 const app = document.getElementById('app')!;
 let speakers: Speaker[] = [];
 
+function showSplash(): void {
+  const splash = document.createElement('div');
+  splash.className = 'splash-screen';
+  splash.innerHTML = `<div class="logo">yfSound</div>`;
+  document.body.appendChild(splash);
+
+  // Remove from DOM after animation finishes to ensure it's not in the accessibility tree
+  setTimeout(() => {
+    splash.remove();
+  }, 2000);
+}
+
 async function boot(): Promise<void> {
+  showSplash();
   try {
     speakers = await loadSpeakers();
   } catch (e) {
@@ -18,6 +31,7 @@ async function boot(): Promise<void> {
   }
   startRouter(render);
 }
+
 
 function shell(content: HTMLElement): HTMLElement {
   const header = document.createElement('header');
