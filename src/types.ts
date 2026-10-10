@@ -25,6 +25,15 @@ export interface Speaker {
   createdAt: string;
   /** ISO 8601 date (YYYY-MM-DD), set by CMS */
   updatedAt: string;
+  /** Optional tags for faceting; normalized to kebab-case in CMS */
+  tags?: string[];
+}
+
+export interface Facet {
+  /** Tag name (kebab-case) */
+  tag: string;
+  /** Number of speakers having this tag */
+  count: number;
 }
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -66,6 +75,17 @@ export function validateSpeaker(v: unknown): string[] {
   if (typeof s.updatedAt !== 'string' || !DATE_RE.test(s.updatedAt)) {
     errors.push('updatedAt must be YYYY-MM-DD');
   }
+  if (s.tags !== undefined) {
+    if (!Array.isArray(s.tags)) {
+      errors.push('tags must be an array');
+    } else {
+      s.tags.forEach((t, i) => {
+        if (typeof t !== 'string' || !SLUG_RE.test(t)) {
+          errors.push(`tags[${i}] must be kebab-case ([a-z0-9-])`);
+        }
+      });
+    }
+  }
   return errors;
 }
 
@@ -83,4 +103,14 @@ export function validateContent(v: unknown): string[] {
     }
   });
   return errors;
+}
+
+/** Normalize a single tag token to kebab-case (lowercase, alphanumeric + dash). */
+export function normalizeTag(token: string): string {
+  return token
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }

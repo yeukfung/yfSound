@@ -66,21 +66,26 @@ interface Speaker {
   gallery: GalleryImage[];  // ordered, first image is the cover
   createdAt: string; // ISO 8601 date, set by CMS
   updatedAt: string; // ISO 8601 date, set by CMS
+  tags?: string[];   // optional tags for faceting (kebab-case)
 }
 ```
 
 `speakers.json` is a top-level array of `Speaker`, ordered by `createdAt` desc
-(newest first). The home page renders in file order.
+(newest first). The home page renders in file order. Tags are optional; if present,
+each tag is a kebab-case string (`^[a-z0-9]+(-[a-z0-9]+)*$`) and normalized by the CMS.
 
 ## 5. CMS Contract
 
 - Route: `#/admin` — only reachable in dev (`npm run dev`).
 - Actions allowed: create speaker, edit speaker, delete speaker, reorder gallery,
-  upload image.
+  upload image, manage tags (facets).
 - On image upload:
   1. sanitize the filename to kebab-case
   2. write to `content/speakers/<slug>/<sanitized-name>`
   3. insert the relative path into the speaker's `gallery`
+- On tags edit: add/remove tokens, sanitize each to kebab-case via `normalizeTag`
+  (lowercase, strip diacritics, collapse non-alphanumeric to `-`, trim dashes), dedupe,
+  store as `string[]`. Invalid tokens are ignored on input or rejected on save by schema.
 - On save:
   1. validate against schema
   2. set `updatedAt`
@@ -166,6 +171,7 @@ No transforms, no bounces. Blinking cursor allowed on the site title via
   save; the CMS enforces live while typing.
 - **File names:** kebab-case, lowercase, images keep their real extension.
 - **Gallery order:** array order = display order; index 0 is the cover on the home page.
+- **Tags:** kebab-case, unique per speaker; derived facets on home page (count + multi-select AND).
 - **Story markdown:** supports headings, paragraphs, bold/italic, inline code,
   links, unordered/ordered lists, blockquotes, code fences. Nothing else (no HTML).
 - **Dates:** always ISO `YYYY-MM-DD` strings.
@@ -182,3 +188,7 @@ When you change a rule here, append a line:
   framing. Clarified rule 6 (admin is a lazy chunk, not tree-shaken). Tightened
   slug convention to the actual regex. Documented the `dist/` content copy step
   and the `/yfSound/` base path in Build & Deploy.
+- 2026-10-09 — added tag faceting: `tags?: string[]` on Speaker, CMS tag editor with
+  `normalizeTag`, home page facet panel with multi-select (AND), clickable tags on
+  speaker page, hash-based tag query for sharability. Updated CMS actions and
+  validation accordingly.

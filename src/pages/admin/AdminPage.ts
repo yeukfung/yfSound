@@ -1,5 +1,5 @@
 import type { Speaker, GalleryImage } from '../../types';
-import { validateContent, validateSpeaker } from '../../types';
+import { validateContent, validateSpeaker, normalizeTag } from '../../types';
 
 /**
  * Dev-only file-based CMS. Talks to the vite plugin endpoints:
@@ -81,7 +81,8 @@ export function renderAdmin(speakers: Speaker[], reload: () => void): HTMLElemen
       gallery: [],
       createdAt: today(),
       updatedAt: today(),
-    };
+      tags: [],
+    } as Speaker;
 
     const panel = document.createElement('div');
     panel.className = 'card';
@@ -109,6 +110,9 @@ export function renderAdmin(speakers: Speaker[], reload: () => void): HTMLElemen
       return wrap;
     };
 
+    // ensure tags exists
+    if (!Array.isArray(draft.tags)) draft.tags = [];
+
     panel.append(
       field('slug (kebab-case, immutable once created)', draft.slug, (v) => {
         draft.slug = v.trim();
@@ -117,6 +121,88 @@ export function renderAdmin(speakers: Speaker[], reload: () => void): HTMLElemen
       field('tagline', draft.tagline, (v) => (draft.tagline = v)),
       field('story (markdown)', draft.story, (v) => (draft.story = v), true)
     );
+
+    // tags chip editor
+    const tagsWrap = document.createElement('div');
+    tagsWrap.style.margin = '14px 0';
+    const tagsLabel = document.createElement('label');
+    tagsLabel.className = 'label';
+    tagsLabel.textContent = 'tags (kebab-case, comma or enter to add)';
+    tagsWrap.append(tagsLabel);
+
+    const chipRow = document.createElement('div');
+    chipRow.style.display = 'flex';
+    chipRow.style.flexWrap = 'wrap';
+    chipRow.style.gap = '6px';
+    chipRow.style.padding = '6px 8px';
+    chipRow.style.border = '1px solid var(--border)';
+    chipRow.style.background = 'var(--bg-inset)';
+    chipRow.style.minHeight = '34px';
+
+    const chipInput = document.createElement('input');
+    chipInput.className = 'input';
+    chipInput.type = 'text';
+    chipInput.placeholder = 'add tag...';
+    chipInput.style.border = 'none';
+    chipInput.style.padding = '0';
+    chipInput.style.background = 'transparent';
+    chipInput.style.flex = '1';
+    chipInput.style.minWidth = '80px';
+
+    function renderChips(): void {
+      chipRow.querySelectorAll('.chip').forEach((c) => c.remove());
+      for (const t of draft.tags || []) {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.style.display = 'inline-flex';
+        chip.style.alignItems = 'center';
+        chip.style.gap = '6px';
+        chip.style.padding = '2px 6px';
+        chip.style.border = '1px solid var(--border)';
+        chip.style.fontSize = '12px';
+        const txt = document.createElement('span');
+        txt.textContent = t;
+        const x = document.createElement('button');
+        x.className = 'btn';
+        x.textContent = 'x';
+        x.style.padding = '0 4px';
+        x.style.fontSize = '11px';
+        x.onclick = () => {
+          draft.tags = (draft.tags || []).filter((v) => v !== t);
+          renderChips();
+        };
+        chip.append(txt, x);
+        chipRow.insertBefore(chip, chipInput);
+      }
+    }
+
+    function addToken(raw: string): void {
+      const n = normalizeTag(raw);
+      if (!n) return;
+      if (!SLUG_RE.test(n)) return;
+      if (!Array.isArray(draft.tags)) draft.tags = [];
+      if (!draft.tags.includes(n)) draft.tags.push(n);
+      chipInput.value = '';
+      renderChips();
+    }
+
+    chipInput.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addToken(chipInput.value);
+      } else if (e.key === 'Backspace' && chipInput.value === '' && (draft.tags || []).length > 0) {
+        draft.tags = (draft.tags || []).slice(0, -1);
+        renderChips();
+      }
+    };
+    chipInput.onblur = () => {
+      if (chipInput.value.trim()) addToken(chipInput.value);
+    };
+
+    chipRow.append(chipInput);
+    renderChips();
+    tagsWrap.append(chipRow);
+    panel.append(tagsWrap);
 
     // gallery management
     const galWrap = document.createElement('div');

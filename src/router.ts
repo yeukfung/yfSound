@@ -8,18 +8,20 @@
 export type Route =
   | { name: 'home' }
   | { name: 'speaker'; slug: string }
-  | { name: 'admin' }
-  | { name: 'notfound' };
+  | { name: 'admin' };
 
 export function parseHash(hash: string): Route {
-  const path = hash.replace(/^#\/?/, '');
+  const path = hash.replace(/^#/, '');
   if (path === '') return { name: 'home' };
-  const parts = path.split('/');
+  
+  const parts = path.split('/').filter(Boolean);
+  
   if (parts[0] === 'speaker' && parts.length === 2 && parts[1] !== '') {
     return { name: 'speaker', slug: parts[1] };
   }
   if (parts[0] === 'admin') return { name: 'admin' };
-  return { name: 'notfound' };
+  
+  return { name: 'home' };
 }
 
 type Handler = (route: Route) => void;
