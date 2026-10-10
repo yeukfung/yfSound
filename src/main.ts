@@ -1,7 +1,8 @@
 import './styles/tokens.css';
 import './styles/pixel.css';
-import { startRouter, type Route } from './router';
+import { homeHash, startRouter, type Route } from './router';
 import { loadSpeakers } from './lib/content';
+import { collectFacets, filterByTags } from './lib/facets';
 import { renderMarkdown } from './lib/markdown';
 import type { Speaker } from './types';
 
@@ -53,7 +54,7 @@ async function render(route: Route): Promise<void> {
   }
 
   if (route.name === 'home') {
-    app.replaceChildren(shell(homeEl()));
+    app.replaceChildren(shell(homeEl(route.tags)));
     return;
   }
 
@@ -66,7 +67,7 @@ async function render(route: Route): Promise<void> {
   app.replaceChildren(shell(notFoundEl()));
 }
 
-function homeEl(): HTMLElement {
+function homeEl(selectedTags: string[]): HTMLElement {
   const frag = document.createElement('div');
   const h = document.createElement('h1');
   h.textContent = 'Designs';
@@ -76,109 +77,119 @@ function homeEl(): HTMLElement {
   frag.append(h, p);
 
   if (speakers.length === 0) {
-    const p = document.createElement('p');
-    p.className = 'dim';
-    p.textContent = 'No designs published yet. Add one via the admin UI (npm run dev → #/admin).';
-    frag.append(p);
+    const empty = document.createElement('p');
+    empty.className = 'dim';
+    empty.textContent = 'No designs published yet. Add one via the admin UI (npm run dev → #/admin).';
+    frag.append(empty);
     return frag;
   }
 
-  const listArea = document.createElement('div');
+  const facets = collectFacets(speakers);
+  if (facets.length > 0) {
+    const panel = document.createElement('div');
+    panel.className = 'facet-panel';
+    for (const f of facets) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'facet' + (selectedTags.includes(f.tag) ? ' is-on' : '');
+      btn.textContent = `${f.tag} (${f.count})`;
+      btn.addEventListener('click', () => {
+        const next = selectedTags.includes(f.tag)
+          ? selectedTags.filter((t) => t !== f.tag)
+          : [...selectedTags, f.tag];
+        location.hash = homeHash(next);
+      });
+      panel.append(btn);
+    }
+    if (selectedTags.length > 0) {
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'facet';
+      clear.textContent = 'clear';
+      clear.addEventListener('click', () => {
+        location.hash = homeHash([]);
+      });
+      panel.append(clear);
+    }
+    frag.append(panel);
+  }
+
+  const visible = filterByTags(speakers, selectedTags);
   const countBar = document.createElement('div');
-  countBar.className = 'dim';
-  countBar.style.marginBottom = 'var(--gap)';
-  listArea.append(countBar);
+  countBar.className = 'count-bar';
+  countBar.textContent = `${visible.length} / ${speakers.length} speaker${speakers.length === 1 ? '' : 's'}`;
+  frag.append(countBar);
+
+  if (visible.length === 0) {
+    const none = document.createElement('p');
+    none.className = 'dim';
+    none.textContent = 'no designs match these tags';
+    frag.append(none);
+    return frag;
+  }
 
   const grid = document.createElement('div');
-  grid.style.display = 'grid';
-  grid.style.gap = 'var(--gap)';
-  grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(300px, 1fr))';
-
-  function renderList(): void {
-    countBar.textContent = `${speakers.length} / ${speakers.length} speaker${speakers.length === 1 ? '' : 's'}`;
-    grid.innerHTML = '';
-    for (const sp of speakers) {
-      const card = document.createElement('a');
-      card.className = 'card';
-      card.href = `#/speaker/${sp.slug}`;
-      card.style.display = 'flex';
-      card.style.gap = 'var(--gap)';
-      card.style.alignItems = 'center';
-      card.style.color = 'inherit';
-      if (sp.gallery.length > 0) {
-        const img = document.createElement('img');
-        img.src = sp.gallery[0].path;
-        img.alt = sp.gallery[0].caption || sp.name;
-        img.loading = 'lazy';
-        img.style.width = '120px';
-        img.style.height = '90px';
-        img.style.objectFit = 'cover';
-        img.style.border = '1px solid var(--border)';
-        img.style.background = 'var(--bg-inset)';
-        card.append(img);
-      }
-      const meta = document.createElement('div');
-      const name = document.createElement('div');
-      name.textContent = sp.name;
-      name.style.fontWeight = '700';
-      name.style.color = 'var(--fg)';
-      const tagline = document.createElement('div');
-      tagline.className = 'dim';
-      tagline.style.fontSize = '13px';
-      tagline.textContent = sp.tagline;
-      meta.append(name, tagline);
-      if ((sp.tags || []).length) {
-        const tagsRow = document.createElement('div');
-        tagsRow.style.display = 'flex';
-        tagsRow.style.flexWrap = 'wrap';
-        tagsRow.style.gap = '6px';
-        for (const t of (sp.tags || []).slice(0, 4)) {
-          const pill = document.createElement('span');
-          pill.className = 'dim';
-          pill.textContent = t;
-          pill.style.fontSize = '12px';
-          pill.style.padding = '2px 6px';
-          pill.style.border = '1px solid var(--border)';
-          tagsRow.append(pill);
-        }
-        meta.append(tagsRow);
-      }
-      card.append(meta);
-      grid.append(card);
+  grid.className = 'speaker-grid';
+  for (const sp of visible) {
+    const card = document.createElement('a');
+    card.className = 'card card-row';
+    card.href = `#/speaker/${sp.slug}`;
+    if (sp.gallery.length > 0) {
+      const img = document.createElement('img');
+      img.className = 'card-cover';
+      img.src = sp.gallery[0].path;
+      img.alt = sp.gallery[0].caption || sp.name;
+      img.loading = 'lazy';
+      card.append(img);
     }
-    listArea.append(grid);
+    const meta = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'card-name';
+    name.textContent = sp.name;
+    const tagline = document.createElement('div');
+    tagline.className = 'dim card-tagline';
+    tagline.textContent = sp.tagline;
+    meta.append(name, tagline);
+    if ((sp.tags || []).length) {
+      const tagsRow = document.createElement('div');
+      tagsRow.className = 'tag-row';
+      for (const t of (sp.tags || []).slice(0, 4)) {
+        const pill = document.createElement('span');
+        pill.className = 'tag-pill';
+        pill.textContent = t;
+        tagsRow.append(pill);
+      }
+      meta.append(tagsRow);
+    }
+    card.append(meta);
+    grid.append(card);
   }
-  
-  renderList();
-  frag.append(listArea);
+  frag.append(grid);
   return frag;
 }
 
-
-
-
 function speakerEl(sp: Speaker): HTMLElement {
   const frag = document.createElement('div');
-  
+
   const back = document.createElement('a');
   back.href = '#/';
   back.textContent = '<- all designs';
   back.style.display = 'inline-block';
   back.style.marginBottom = '18px';
   frag.append(back);
-  
+
   const h = document.createElement('h1');
   h.textContent = sp.name;
   const tag = document.createElement('p');
   tag.className = 'dim';
   tag.textContent = sp.tagline;
   frag.append(h, tag);
-  
+
   const story = document.createElement('article');
   story.className = 'story';
   story.innerHTML = renderMarkdown(sp.story);
   frag.append(story);
-  
+
   if (sp.gallery.length > 0) {
     const gal = document.createElement('div');
     gal.style.display = 'grid';
@@ -200,29 +211,25 @@ function speakerEl(sp: Speaker): HTMLElement {
     }
     frag.append(gal);
   }
-  
+
   if ((sp.tags || []).length) {
     const tagsRow = document.createElement('div');
-    tagsRow.style.display = 'flex';
-    tagsRow.style.flexWrap = 'wrap';
-    tagsRow.style.gap = '6px';
-    for (const t of (sp.tags || [])) {
+    tagsRow.className = 'tag-row';
+    for (const t of sp.tags || []) {
       const pill = document.createElement('a');
-      pill.className = 'dim';
-      pill.href = `#/?tags=${t},`; // Add comma so tag filters work
+      pill.className = 'tag-pill';
+      pill.href = homeHash([t]);
       pill.textContent = t;
-      pill.style.fontSize = '12px';
-      pill.style.border = '1px solid var(--border)';
       tagsRow.append(pill);
     }
     frag.append(tagsRow);
   }
-  
+
   const date = document.createElement('p');
   date.className = 'dim';
   date.textContent = `created ${sp.createdAt} · updated ${sp.updatedAt}`;
   frag.append(date);
-  
+
   return frag;
 }
 
